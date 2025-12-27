@@ -12,5 +12,5 @@ cmds = [
 [phases.build]
 cmds = []
 
-[start]
-cmd = "PYTHONPATH=/app:$PYTHONPATH python start.py"
+# Note: Start command is defined in Procfile, not here
+# Railway will automatically detect and use the Procfile

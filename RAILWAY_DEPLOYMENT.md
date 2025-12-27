@@ -75,12 +75,26 @@ For the **Worker Service**, set the same environment variables as the API servic
 ### 4. Configure Service Settings
 
 #### API Service Settings:
-- **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-- Railway will automatically use the PORT environment variable
+1. Go to your **API Service** → **Settings** → **Deploy**
+2. In the **Start Command** field, enter:
+   ```
+   PYTHONPATH=/app:$PYTHONPATH python start.py
+   ```
+   OR if Railway detects your Procfile, select the **"web"** process type from the dropdown
+3. Railway will automatically use the PORT environment variable
 
 #### Worker Service Settings:
-- **Start Command:** `celery -A app.core.celery_app.celery_app worker --loglevel=info`
-- Or use the Procfile: Railway will detect the `worker` process type
+1. Go to your **Worker Service** → **Settings** → **Deploy**
+2. In the **Start Command** field, enter:
+   ```
+   PYTHONPATH=/app:$PYTHONPATH celery -A app.core.celery_app.celery_app worker --loglevel=info
+   ```
+   OR if Railway detects your Procfile, select the **"worker"** process type from the dropdown
+
+**Note:** If Railway doesn't automatically detect your Procfile:
+- Make sure `Procfile` is in the root of your repository (same level as `requirements.txt`)
+- The Procfile should have no file extension (not `Procfile.txt`)
+- You can manually set the start command in each service's Settings → Deploy section
 
 ### 5. Deploy Frontend (Optional)
 
@@ -144,6 +158,16 @@ Railway will check your `/api/v1/health` endpoint. Make sure it returns a 200 st
 
 ## Troubleshooting
 
+### Procfile Not Detected
+If Railway doesn't automatically detect your Procfile:
+1. **Verify Procfile location**: It must be in the root directory (same level as `requirements.txt`)
+2. **Check file name**: Must be exactly `Procfile` (no extension, case-sensitive)
+3. **Manual configuration**: Go to each service → Settings → Deploy → Start Command and manually enter:
+   - **API Service**: `PYTHONPATH=/app:$PYTHONPATH python start.py`
+   - **Worker Service**: `PYTHONPATH=/app:$PYTHONPATH celery -A app.core.celery_app.celery_app worker --loglevel=info`
+4. **Check file encoding**: Procfile should be UTF-8 encoded
+5. **Verify in repository**: Make sure Procfile is committed and pushed to your GitHub repo
+
 ### Build Failures
 - Check build logs in Railway dashboard
 - Ensure all dependencies in `requirements.txt` are compatible
@@ -158,6 +182,7 @@ Railway will check your `/api/v1/health` endpoint. Make sure it returns a 200 st
 - Verify worker service is running
 - Check that `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND` are set
 - Check worker logs in Railway dashboard
+- Ensure worker service has a different start command than the API service
 
 ### Memory Issues
 - ML models can be memory-intensive
