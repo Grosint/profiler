@@ -11,6 +11,7 @@ from app.core.error_handlers import init_error_handlers
 from app.core.logging import setup_logging
 from app.api.endpoints import profiler as profiler_router
 from app.api.endpoints import health as health_router
+from app.api.endpoints import post as post_router
 
 
 def create_app() -> FastAPI:
@@ -47,6 +48,11 @@ def create_app() -> FastAPI:
         profiler_router.router,
         prefix=settings.API_V1_PREFIX,
         tags=["profiles"],
+    )
+    app.include_router(
+        post_router.router,
+        prefix=settings.API_V1_PREFIX,
+        tags=["posts"],
     )
     app.include_router(
         health_router.router,

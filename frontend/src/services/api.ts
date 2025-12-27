@@ -7,6 +7,10 @@ import type {
   ProfileStatusResponse,
   ScrapedDataItem,
   ProfileStatus,
+  CreatePostAnalysisRequest,
+  PostStatusResponse,
+  PostListItem,
+  PostStatus,
 } from '../types/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -60,6 +64,31 @@ export const api = {
   // Get raw scraped data
   getProfileRawData: async (profileId: string): Promise<APIResponse<ScrapedDataItem[]>> => {
     const response = await apiClient.get<APIResponse<ScrapedDataItem[]>>(`/profiles/${profileId}/raw-data`);
+    return response.data;
+  },
+
+  // Post Analysis APIs
+  // List all posts
+  listPosts: async (
+    skip: number = 0,
+    limit: number = 100,
+    status?: PostStatus
+  ): Promise<APIResponse<PostListItem[]>> => {
+    const params: any = { skip, limit };
+    if (status) params.status = status;
+    const response = await apiClient.get<APIResponse<PostListItem[]>>('/posts', { params });
+    return response.data;
+  },
+
+  // Create a new post analysis
+  createPostAnalysis: async (payload: CreatePostAnalysisRequest): Promise<APIResponse<PostStatusResponse>> => {
+    const response = await apiClient.post<APIResponse<PostStatusResponse>>('/posts', payload);
+    return response.data;
+  },
+
+  // Get post analysis status
+  getPost: async (postId: string): Promise<APIResponse<PostStatusResponse>> => {
+    const response = await apiClient.get<APIResponse<PostStatusResponse>>(`/posts/${postId}`);
     return response.data;
   },
 };

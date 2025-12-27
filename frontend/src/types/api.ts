@@ -98,3 +98,82 @@ export interface APIResponse<T> {
     details?: Record<string, any> | null;
   } | null;
 }
+
+// Post Analysis Types
+export enum PostStatus {
+  PENDING = 'pending',
+  SCRAPING = 'scraping',
+  PROCESSING = 'processing',
+  ANALYZING = 'analyzing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}
+
+export enum PostType {
+  PROFILE = 'profile',
+  POST = 'post',
+}
+
+export interface CreatePostAnalysisRequest {
+  postUrl: string;
+  externalRefId?: string | null;
+  metadata?: Record<string, any> | null;
+}
+
+export interface CommentAnalysisResponse {
+  comment_id: string;
+  author_username?: string | null;
+  author_name?: string | null;
+  author_url?: string | null;
+  text: string;
+  timestamp?: string | null;
+  toxicity_score: number;
+  is_toxic: boolean;
+  is_anti_national: boolean;
+  toxicity_labels: Array<Record<string, any>>;
+  sentiment: string;
+  sentiment_score: number;
+}
+
+export interface PostAnalysisResultResponse {
+  post_id: string;
+  post_url: string;
+  post_text: string;
+  author_username?: string | null;
+  author_name?: string | null;
+  author_url?: string | null;
+  timestamp?: string | null;
+  comments_count: number;
+  comments_analyzed: number;
+  toxic_comments_count: number;
+  anti_national_comments_count: number;
+  flagged_commenters: Array<Record<string, any>>;
+  comments: CommentAnalysisResponse[];
+}
+
+export interface PostStatusResponse {
+  id: string;
+  postUrl: string;
+  postType: PostType;
+  platform: string;
+  status: PostStatus;
+  analysis?: PostAnalysisResultResponse | null;
+  errorMessage?: string | null;
+  externalRefId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PostListItem {
+  id: string;
+  postUrl: string;
+  postType: PostType;
+  platform: string;
+  status: PostStatus;
+  errorMessage?: string | null;
+  externalRefId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  comments_count: number;
+  flagged_commenters_count: number;
+}

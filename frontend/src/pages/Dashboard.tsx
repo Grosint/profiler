@@ -11,34 +11,82 @@ import {
   TrendingUp,
   Activity,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Instagram,
+  Facebook,
+  Twitter,
+  Globe,
+  User,
+  MessageSquare
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { ProfileStatus } from '../types/api';
+import { ProfileStatus, PostStatus, PostType } from '../types/api';
 import { getStatusColor, getStatusIcon } from '../utils/statusUtils';
 import { api } from '../services/api';
 
+// Platform icon component
+function PlatformIcon({ platform }: { platform: string }) {
+  const platformLower = platform.toLowerCase();
+  const iconClass = "w-4 h-4";
+
+  if (platformLower === 'instagram') {
+    return <Instagram className={iconClass} />;
+  } else if (platformLower === 'facebook') {
+    return <Facebook className={iconClass} />;
+  } else if (platformLower === 'twitter') {
+    return <Twitter className={iconClass} />;
+  } else {
+    return <Globe className={iconClass} />;
+  }
+}
+
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ProfileStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<ProfileStatus | PostStatus | 'all'>('all');
+  const [viewType, setViewType] = useState<'all' | 'profiles' | 'posts'>('all');
 
   // Fetch profiles from API
   const {
     data: profilesResponse,
-    isLoading,
-    error,
-    refetch,
+    isLoading: profilesLoading,
+    error: profilesError,
+    refetch: refetchProfiles,
   } = useQuery(
-    ['profiles', statusFilter],
-    () => api.listProfiles(0, 1000, statusFilter === 'all' ? undefined : statusFilter),
+    ['profiles', statusFilter === 'all' ? undefined : (statusFilter as ProfileStatus)],
+    () => api.listProfiles(0, 1000, statusFilter === 'all' ? undefined : (statusFilter as ProfileStatus)),
     {
-      refetchInterval: 10000, // Refetch every 10 seconds to get updates
+      refetchInterval: 10000,
+      enabled: viewType === 'all' || viewType === 'profiles',
+    }
+  );
+
+  // Fetch posts from API
+  const {
+    data: postsResponse,
+    isLoading: postsLoading,
+    error: postsError,
+    refetch: refetchPosts,
+  } = useQuery(
+    ['posts', statusFilter === 'all' ? undefined : (statusFilter as PostStatus)],
+    () => api.listPosts(0, 1000, statusFilter === 'all' ? undefined : (statusFilter as PostStatus)),
+    {
+      refetchInterval: 10000,
+      enabled: viewType === 'all' || viewType === 'posts',
     }
   );
 
   const profiles = profilesResponse?.data || [];
+  const posts = postsResponse?.data || [];
 
-  // Filter profiles by search query
+  const isLoading = profilesLoading || postsLoading;
+  const error = profilesError || postsError;
+
+  const refetch = () => {
+    refetchProfiles();
+    refetchPosts();
+  };
+
+  // Filter profiles and posts by search query
   const filteredProfiles = useMemo(() => {
     return profiles.filter(profile => {
       const matchesSearch = !searchQuery ||
@@ -49,17 +97,40 @@ export default function Dashboard() {
     });
   }, [profiles, searchQuery]);
 
+  const filteredPosts = useMemo(() => {
+    return posts.filter(post => {
+      const matchesSearch = !searchQuery ||
+        post.postUrl?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.externalRefId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.id.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesSearch;
+    });
+  }, [posts, searchQuery]);
+
   // Calculate statistics
   const stats = useMemo(() => {
+    const allProfiles = profiles.length;
+    const allPosts = posts.length;
+    const completedProfiles = profiles.filter(p => p.status === ProfileStatus.COMPLETED).length;
+    const completedPosts = posts.filter(p => p.status === PostStatus.COMPLETED).length;
+    const processingProfiles = profiles.filter(p =>
+      [ProfileStatus.SCRAPING, ProfileStatus.PROCESSING, ProfileStatus.ANALYZING, ProfileStatus.PENDING].includes(p.status)
+    ).length;
+    const processingPosts = posts.filter(p =>
+      [PostStatus.SCRAPING, PostStatus.PROCESSING, PostStatus.ANALYZING, PostStatus.PENDING].includes(p.status)
+    ).length;
+    const failedProfiles = profiles.filter(p => p.status === ProfileStatus.FAILED).length;
+    const failedPosts = posts.filter(p => p.status === PostStatus.FAILED).length;
+
     return {
-      total: profiles.length,
-      completed: profiles.filter(p => p.status === ProfileStatus.COMPLETED).length,
-      processing: profiles.filter(p =>
-        [ProfileStatus.SCRAPING, ProfileStatus.PROCESSING, ProfileStatus.ANALYZING, ProfileStatus.PENDING].includes(p.status)
-      ).length,
-      failed: profiles.filter(p => p.status === ProfileStatus.FAILED).length,
+      total: allProfiles + allPosts,
+      totalProfiles: allProfiles,
+      totalPosts: allPosts,
+      completed: completedProfiles + completedPosts,
+      processing: processingProfiles + processingPosts,
+      failed: failedProfiles + failedPosts,
     };
-  }, [profiles]);
+  }, [profiles, posts]);
 
   return (
     <div className="space-y-6">
@@ -67,21 +138,62 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-dark-100 mb-2">Intelligence Dashboard</h1>
-          <p className="text-dark-400">Monitor and analyze subject profiles</p>
+          <p className="text-dark-400">Monitor and analyze profiles and posts</p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => refetch()}
             className="btn-secondary flex items-center"
-            title="Refresh profiles"
+            title="Refresh"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </button>
           <Link to="/create" className="btn-primary flex items-center">
             <Plus className="w-5 h-5 mr-2" />
-            New Profile
+            New Analysis
           </Link>
+        </div>
+      </div>
+
+      {/* View Type Toggle */}
+      <div className="card">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-dark-300">View:</span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setViewType('all')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                viewType === 'all'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-dark-700 text-dark-400 hover:bg-dark-600'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setViewType('profiles')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                viewType === 'profiles'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-dark-700 text-dark-400 hover:bg-dark-600'
+              }`}
+            >
+              <User className="w-4 h-4 inline mr-2" />
+              Profiles
+            </button>
+            <button
+              onClick={() => setViewType('posts')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                viewType === 'posts'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-dark-700 text-dark-400 hover:bg-dark-600'
+              }`}
+            >
+              <MessageSquare className="w-4 h-4 inline mr-2" />
+              Posts
+            </button>
+          </div>
         </div>
       </div>
 
@@ -142,10 +254,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Profiles List */}
+      {/* Combined List */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-dark-100">Profiles</h2>
+          <h2 className="text-xl font-semibold text-dark-100">
+            {viewType === 'all' ? 'All Analyses' : viewType === 'profiles' ? 'Profiles' : 'Posts'}
+          </h2>
           {isLoading && (
             <Loader2 className="w-5 h-5 animate-spin text-primary-500" />
           )}
@@ -153,30 +267,37 @@ export default function Dashboard() {
 
         {error ? (
           <div className="bg-danger-900/20 border border-danger-700 text-danger-300 px-4 py-3 rounded-lg mb-4">
-            Failed to load profiles. Please try again.
+            Failed to load data. Please try again.
           </div>
         ) : null}
 
-        {isLoading && !profilesResponse ? (
+        {isLoading && !profilesResponse && !postsResponse ? (
           <div className="text-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-4" />
-            <p className="text-dark-400">Loading profiles...</p>
+            <p className="text-dark-400">Loading...</p>
           </div>
-        ) : filteredProfiles.length === 0 ? (
+        ) : (
+          (viewType === 'all' && filteredProfiles.length === 0 && filteredPosts.length === 0) ||
+          (viewType === 'profiles' && filteredProfiles.length === 0) ||
+          (viewType === 'posts' && filteredPosts.length === 0)
+        ) ? (
           <div className="text-center py-12">
             <AlertCircle className="w-12 h-12 text-dark-600 mx-auto mb-4" />
             <p className="text-dark-400 mb-4">
-              {searchQuery ? 'No profiles match your search' : 'No profiles found'}
+              {searchQuery ? 'No results match your search' : 'No analyses found'}
             </p>
             <Link to="/create" className="btn-primary inline-flex items-center">
               <Plus className="w-4 h-4 mr-2" />
-              Create Your First Profile
+              Create Your First Analysis
             </Link>
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredProfiles.map((profile) => (
-              <ProfileCard key={profile.id} profile={profile} />
+            {(viewType === 'all' || viewType === 'profiles') && filteredProfiles.map((profile) => (
+              <ProfileCard key={`profile-${profile.id}`} profile={profile} />
+            ))}
+            {(viewType === 'all' || viewType === 'posts') && filteredPosts.map((post) => (
+              <PostCard key={`post-${post.id}`} post={post} />
             ))}
           </div>
         )}
@@ -240,12 +361,16 @@ function ProfileCard({ profile }: ProfileCardProps) {
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <div className="flex items-center space-x-3 mb-2">
+            <User className="w-4 h-4 text-primary-400" />
             <h3 className="text-lg font-semibold text-dark-100">
               {profile.subjectName || profile.externalRefId || `Profile ${profile.id.substring(0, 8)}`}
             </h3>
             <span className={`status-badge ${statusColor}`}>
               <StatusIcon className="w-3 h-3 mr-1" />
               {profile.status}
+            </span>
+            <span className="text-xs bg-primary-900/20 text-primary-300 px-2 py-1 rounded border border-primary-700">
+              Profile Search
             </span>
           </div>
           <div className="flex items-center space-x-4 text-sm text-dark-400 mb-2">
@@ -269,6 +394,85 @@ function ProfileCard({ profile }: ProfileCardProps) {
             <div className="mt-2 text-danger-400 text-xs flex items-center">
               <AlertCircle className="w-3 h-3 mr-1" />
               {profile.errorMessage}
+            </div>
+          )}
+        </div>
+        <div className="text-dark-500">
+          <TrendingUp className="w-5 h-5" />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+interface PostCardProps {
+  post: {
+    id: string;
+    postUrl: string;
+    postType: PostType;
+    platform: string;
+    status: PostStatus;
+    createdAt: string;
+    updatedAt: string;
+    errorMessage?: string | null;
+    externalRefId?: string | null;
+    comments_count: number;
+    flagged_commenters_count: number;
+  };
+}
+
+function PostCard({ post }: PostCardProps) {
+  const StatusIcon = getStatusIcon(post.status);
+  const statusColor = getStatusColor(post.status);
+
+  return (
+    <Link
+      to={`/posts/${post.id}`}
+      className="block bg-dark-800 hover:bg-dark-700 border border-dark-700 rounded-lg p-4 transition-colors"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <div className="flex items-center space-x-3 mb-2">
+            <PlatformIcon platform={post.platform} />
+            <MessageSquare className="w-4 h-4 text-primary-400" />
+            <h3 className="text-lg font-semibold text-dark-100 truncate">
+              {post.postUrl}
+            </h3>
+            <span className={`status-badge ${statusColor}`}>
+              <StatusIcon className="w-3 h-3 mr-1" />
+              {post.status}
+            </span>
+            <span className="text-xs bg-success-900/20 text-success-300 px-2 py-1 rounded border border-success-700">
+              Post Search
+            </span>
+          </div>
+          <div className="flex items-center space-x-4 text-sm text-dark-400 mb-2">
+            <span className="flex items-center">
+              <Clock className="w-4 h-4 mr-1" />
+              Created {format(new Date(post.createdAt), 'MMM d, yyyy HH:mm')}
+            </span>
+            {post.externalRefId && (
+              <span className="text-xs bg-dark-700 px-2 py-0.5 rounded">
+                Ref: {post.externalRefId}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-4 text-xs text-dark-500">
+            <span className="flex items-center">
+              <MessageSquare className="w-3 h-3 mr-1" />
+              {post.comments_count} comments
+            </span>
+            {post.flagged_commenters_count > 0 && (
+              <span className="flex items-center text-danger-400">
+                <AlertCircle className="w-3 h-3 mr-1" />
+                {post.flagged_commenters_count} flagged
+              </span>
+            )}
+          </div>
+          {post.errorMessage && (
+            <div className="mt-2 text-danger-400 text-xs flex items-center">
+              <AlertCircle className="w-3 h-3 mr-1" />
+              {post.errorMessage}
             </div>
           )}
         </div>

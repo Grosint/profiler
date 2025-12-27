@@ -7,6 +7,7 @@ from .config import get_settings
 from app.models.profile import Profile
 from app.models.scraped_data import ScrapedData
 from app.models.profile_trait import ProfileTrait
+from app.models.post import Post
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ async def init_database() -> None:
     db = _client[settings.MONGODB_DB_NAME]
     await init_beanie(
         database=db,
-        document_models=[Profile, ScrapedData, ProfileTrait],
+        document_models=[Profile, ScrapedData, ProfileTrait, Post],
     )
     _initialized = True
     logger.info("Beanie database initialized successfully")
