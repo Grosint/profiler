@@ -76,25 +76,28 @@ For the **Worker Service**, set the same environment variables as the API servic
 
 #### API Service Settings:
 1. Go to your **API Service** → **Settings** → **Deploy**
-2. In the **Start Command** field, enter:
+2. If Railway automatically detects your Procfile, it will use the **"web"** process
+3. If not, manually set the **Start Command** to:
    ```
-   PYTHONPATH=/app:$PYTHONPATH python start.py
+   python start.py
    ```
-   OR if Railway detects your Procfile, select the **"web"** process type from the dropdown
-3. Railway will automatically use the PORT environment variable
+4. Railway will automatically use the PORT environment variable
+5. The `start.py` script automatically handles PYTHONPATH configuration
 
 #### Worker Service Settings:
 1. Go to your **Worker Service** → **Settings** → **Deploy**
-2. In the **Start Command** field, enter:
+2. If Railway automatically detects your Procfile, it will use the **"worker"** process
+3. If not, manually set the **Start Command** to:
    ```
-   PYTHONPATH=/app:$PYTHONPATH celery -A app.core.celery_app.celery_app worker --loglevel=info
+   python start_worker.py
    ```
-   OR if Railway detects your Procfile, select the **"worker"** process type from the dropdown
+4. The `start_worker.py` script automatically handles PYTHONPATH configuration
 
-**Note:** If Railway doesn't automatically detect your Procfile:
-- Make sure `Procfile` is in the root of your repository (same level as `requirements.txt`)
-- The Procfile should have no file extension (not `Procfile.txt`)
-- You can manually set the start command in each service's Settings → Deploy section
+**Note:**
+- The Procfile uses simple Python commands (`python start.py` and `python start_worker.py`)
+- Environment variable assignments in Procfile format may not work with Railway's Nixpacks builder
+- Both startup scripts (`start.py` and `start_worker.py`) handle PYTHONPATH internally
+- If Railway doesn't detect your Procfile, manually set the start commands as shown above
 
 ### 5. Deploy Frontend (Optional)
 
