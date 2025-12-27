@@ -1,0 +1,68 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: grosint_profiler
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - redis
+    environment:
+      APP_ENV: docker
+      DEBUG: "0"
+      API_KEY: "dev-secret-key"
+      MONGODB_URI: "mongodb://mongo:27017/grosint_profiler"
+      MONGODB_DB_NAME: "grosint_profiler"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/1"
+      LOG_JSON: "1"
+    ports:
+      - "8000:8000"
+
+  worker:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - redis
+    environment:
+      APP_ENV: docker
+      DEBUG: "0"
+      API_KEY: "dev-secret-key"
+      MONGODB_URI: "mongodb://mongo:27017/grosint_profiler"
+      MONGODB_DB_NAME: "grosint_profiler"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/1"
+      LOG_JSON: "1"
+    command: ["celery", "-A", "app.core.celery_app.celery_app", "worker", "--loglevel=info"]
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: /api/v1
+        VITE_API_KEY: "dev-secret-key"
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3000:80"
+
+volumes:
+  mongo_data:
