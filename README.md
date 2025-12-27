@@ -72,6 +72,23 @@ This will start:
 - Frontend on port 3000
 - Celery worker
 
+### Railway Deployment
+
+This application is configured for deployment on Railway. See [RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md) for detailed deployment instructions.
+
+**Quick Railway Setup:**
+1. Create a Railway project and connect your GitHub repository
+2. Add MongoDB and Redis services (Railway provides these as plugins)
+3. Create two services: one for the API (web) and one for the Celery worker
+4. Configure environment variables as documented in `RAILWAY_DEPLOYMENT.md`
+5. Deploy!
+
+The application includes:
+- `Procfile` - Defines web and worker processes
+- `railway.json` - Railway-specific configuration
+- `.railwayignore` - Files to exclude from deployment
+- `runtime.txt` - Python version specification
+
 ### Frontend Development
 
 See `frontend/README.md` for detailed frontend setup and development instructions.

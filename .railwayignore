@@ -1,0 +1,86 @@
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+DEBUG_CELERY.md
+*.md
+
+# Development files
+.env
+.env.local
+.env.*.local
+.vscode/
+.idea/
+*.code-workspace
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+env/
+ENV/
+.venv/
+
+# Node.js / Frontend (if not building frontend in Railway)
+node_modules/
+npm-debug.log*
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Test files
+.pytest_cache/
+.coverage
+htmlcov/
+test-results/
+playwright-report/
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.cache
+
+# ML Models / Data (if large, consider excluding)
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+models/
+data/
+*.csv
+
+# Playwright cache (will be installed during build)
+playwright/.cache/
