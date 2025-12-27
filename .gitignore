@@ -181,3 +181,6 @@ playwright/.cache/
 # Local configuration
 config.local.py
 settings.local.py
+
+# Railway environment files with credentials
+railway.env.json
