@@ -35,38 +35,26 @@ def create_app() -> FastAPI:
         pass
     # #endregion
 
-    # CORS Configuration - Use settings from environment
-    # Frontend URL: https://frontend-production-0fff.up.railway.app
-    frontend_origin = "https://frontend-production-0fff.up.railway.app"
-    # Get CORS origins from settings (parsed from environment variable)
-    cors_origins = settings.CORS_ALLOW_ORIGINS
-    # If using "*", credentials must be False
-    cors_credentials = False if "*" in cors_origins else settings.CORS_ALLOW_CREDENTIALS
-
-    logger.info(f"CORS Configuration: allow_origins={cors_origins} (allows all including {frontend_origin})")
-    logger.info(f"CORS Frontend Origin: {frontend_origin}")
-    logger.info(f"CORS Raw String from env: {settings.CORS_ALLOW_ORIGINS_STR}")
-    logger.warning(f"CORS Environment Variable: {os.getenv('CORS_ALLOW_ORIGINS', 'NOT SET - using * to allow all')}")
+    # CORS - Simple: allow everything with "*"
+    logger.info("CORS Configuration: allow_origins=['*'] (allows all origins)")
 
     # #region agent log
     try:
         with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
-            f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-config", "hypothesisId": "C", "location": "main.py:create_app", "message": "CORS middleware configuration", "data": {"allow_origins": cors_origins, "frontend_origin": frontend_origin, "allow_credentials": cors_credentials, "allow_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"]}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+            f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-config", "hypothesisId": "C", "location": "main.py:create_app", "message": "CORS middleware configuration", "data": {"allow_origins": ["*"], "allow_credentials": False, "allow_methods": ["*"], "allow_headers": ["*"]}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
     except:
         pass
     # #endregion
 
-    # CORS - CRITICAL: Middleware MUST be added FIRST (before routers and other middleware)
-    # FastAPI CORSMiddleware must be added first to handle preflight OPTIONS requests
-    # This is the FIRST middleware added to ensure it processes all requests
+    # CORS - Simple: allow everything
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=cors_origins,  # Use parsed origins from environment
-        allow_credentials=cors_credentials,  # False when using "*", otherwise from settings
-        allow_methods=settings.CORS_ALLOW_METHODS if settings.CORS_ALLOW_METHODS != ["*"] else ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
-        allow_headers=settings.CORS_ALLOW_HEADERS if settings.CORS_ALLOW_HEADERS != ["*"] else ["*"],
+        allow_origins=["*"],  # Allow all origins
+        allow_credentials=False,  # Must be False when using "*"
+        allow_methods=["*"],  # Allow all methods
+        allow_headers=["*"],  # Allow all headers
         expose_headers=["*"],  # Expose all headers
-        max_age=3600,  # Cache preflight for 1 hour
+        max_age=3600,
     )
 
     # #region agent log
@@ -111,24 +99,12 @@ def create_app() -> FastAPI:
             pass
         # #endregion
 
-        # Ensure CORS headers are present on all responses (CORSMiddleware should have added them, but ensure they're there)
-        # Only add if not already set by CORSMiddleware (which handles OPTIONS properly)
+        # Simple: ensure CORS headers are on every response (CORSMiddleware should handle this, but safety net)
         if "access-control-allow-origin" not in response.headers:
-            # Fallback: add CORS headers if CORSMiddleware didn't (shouldn't happen, but safety net)
-            origin = request.headers.get("origin")
-            if origin and origin in cors_origins:
-                response.headers["Access-Control-Allow-Origin"] = origin
-            elif "*" in cors_origins:
-                response.headers["Access-Control-Allow-Origin"] = "*"
-            else:
-                # Use first allowed origin as fallback
-                response.headers["Access-Control-Allow-Origin"] = cors_origins[0] if cors_origins else "*"
-            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Methods"] = "*"
             response.headers["Access-Control-Allow-Headers"] = "*"
             response.headers["Access-Control-Allow-Credentials"] = "false"
-            logger.warning(f"CORS headers added as fallback for {request.method} {request.url.path} (CORSMiddleware should have handled this)")
-        else:
-            logger.debug(f"CORS headers already present from CORSMiddleware for {request.method} {request.url.path}")
 
         # #region agent log
         try:

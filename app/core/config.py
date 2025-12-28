@@ -49,38 +49,9 @@ class Settings(BaseSettings):
     @property
     def CORS_ALLOW_ORIGINS(self) -> list[str]:
         """
-        Parse CORS_ALLOW_ORIGINS from comma-separated string.
-        Supports "*" for all origins or specific origins separated by commas.
+        Always return ["*"] to allow all origins - simple and works everywhere.
         """
-        # #region agent log
-        import json
-        import os
-        env_value = os.getenv("CORS_ALLOW_ORIGINS", "NOT_SET")
-        try:
-            with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
-                f.write(json.dumps({"sessionId": "debug-session", "runId": "config-cors", "hypothesisId": "G", "location": "config.py:CORS_ALLOW_ORIGINS", "message": "CORS_ALLOW_ORIGINS property accessed", "data": {"cors_allow_origins_str": self.CORS_ALLOW_ORIGINS_STR, "env_cors_allow_origins": env_value}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
-        except:
-            pass
-        # #endregion
-        # Parse comma-separated origins from environment variable
-        if not self.CORS_ALLOW_ORIGINS_STR or self.CORS_ALLOW_ORIGINS_STR.strip() == "":
-            # Default to "*" if not set
-            parsed_origins = ["*"]
-        elif self.CORS_ALLOW_ORIGINS_STR.strip() == "*":
-            parsed_origins = ["*"]
-        else:
-            # Split by comma and strip whitespace
-            parsed_origins = [origin.strip() for origin in self.CORS_ALLOW_ORIGINS_STR.split(",") if origin.strip()]
-            if not parsed_origins:
-                parsed_origins = ["*"]  # Fallback to "*" if parsing fails
-        # #region agent log
-        try:
-            with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
-                f.write(json.dumps({"sessionId": "debug-session", "runId": "config-cors", "hypothesisId": "G", "location": "config.py:CORS_ALLOW_ORIGINS", "message": "CORS_ALLOW_ORIGINS parsed", "data": {"parsed_origins": parsed_origins}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
-        except:
-            pass
-        # #endregion
-        return parsed_origins
+        return ["*"]
 
     # Logging
     LOG_LEVEL: str = "INFO"
