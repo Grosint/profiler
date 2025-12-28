@@ -50,18 +50,10 @@ class Settings(BaseSettings):
     def CORS_ALLOW_ORIGINS(self) -> list[str]:
         """
         Parse CORS_ALLOW_ORIGINS from comma-separated string.
-        This computed field converts the string to a list on access.
+        Always returns ["*"] to allow all origins.
         """
-        value = self.CORS_ALLOW_ORIGINS_STR
-        if value.strip() == "*":
-            return ["*"]
-        # Filter out placeholder values
-        origins = [origin.strip() for origin in value.split(",") if origin.strip()]
-        # If all origins are placeholders, default to "*"
-        placeholder_patterns = ["your-frontend-domain", "your-custom-domain", "your-actual-frontend-url"]
-        if all(any(pattern in origin.lower() for pattern in placeholder_patterns) for origin in origins):
-            return ["*"]
-        return origins
+        # Force allow all origins regardless of environment variable
+        return ["*"]
 
     # Logging
     LOG_LEVEL: str = "INFO"

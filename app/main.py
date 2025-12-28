@@ -35,19 +35,13 @@ def create_app() -> FastAPI:
         pass
     # #endregion
 
-    logger.info(f"CORS Configuration: allow_origins={settings.CORS_ALLOW_ORIGINS}")
-    logger.info(f"CORS Raw String: {settings.CORS_ALLOW_ORIGINS_STR}")
-    logger.warning(f"CORS Environment Variable: {os.getenv('CORS_ALLOW_ORIGINS', 'NOT SET - using default *')}")
+    # Force CORS to allow all origins (*) - ignore environment variable
+    cors_origins = ["*"]
+    cors_credentials = False  # Must be False when using "*"
 
-    # CORS Configuration Fix:
-    # If allow_credentials=True, we CANNOT use ["*"] - must specify exact origins
-    # If origins is ["*"], we must disable credentials
-    cors_origins = settings.CORS_ALLOW_ORIGINS
-    cors_credentials = settings.CORS_ALLOW_CREDENTIALS
-
-    if "*" in cors_origins and cors_credentials:
-        logger.warning("CORS: allow_credentials=True with origins=['*'] is invalid. Disabling credentials.")
-        cors_credentials = False
+    logger.info(f"CORS Configuration: allow_origins={cors_origins} (forced to allow all)")
+    logger.info(f"CORS Raw String from env: {settings.CORS_ALLOW_ORIGINS_STR}")
+    logger.warning(f"CORS Environment Variable: {os.getenv('CORS_ALLOW_ORIGINS', 'NOT SET - using forced *')}")
 
     # #region agent log
     try:
