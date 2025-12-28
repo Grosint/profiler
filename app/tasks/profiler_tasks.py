@@ -23,27 +23,85 @@ def run_profile_pipeline(profile_id: str) -> Dict[str, Any]:
     Pipeline: SCRAPING → PROCESSING → ANALYZING → COMPLETED/FAILED.
     """
     import asyncio
+    # #region agent log
+    import json
+    import os
+    try:
+        with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+            f.write(json.dumps({"sessionId": "debug-session", "runId": "worker-task", "hypothesisId": "B", "location": "profiler_tasks.py:run_profile_pipeline", "message": "Celery task started", "data": {"profile_id": profile_id}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+    except:
+        pass
+    # #endregion
 
     async def _run() -> Dict[str, Any]:
         # Initialize database connection for Beanie
         logger.info(f"Initializing database for profile {profile_id}")
+        # #region agent log
+        try:
+            with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                f.write(json.dumps({"sessionId": "debug-session", "runId": "worker-task", "hypothesisId": "C", "location": "profiler_tasks.py:_run", "message": "Initializing database", "data": {"profile_id": profile_id}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+        except:
+            pass
+        # #endregion
         try:
             await init_database()
             logger.info(f"Database initialized successfully for profile {profile_id}")
+            # #region agent log
+            try:
+                with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                    f.write(json.dumps({"sessionId": "debug-session", "runId": "worker-task", "hypothesisId": "C", "location": "profiler_tasks.py:_run", "message": "Database initialized successfully", "data": {"profile_id": profile_id}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+            except:
+                pass
+            # #endregion
         except Exception as db_init_error:
             logger.error(f"Database initialization failed: {db_init_error}", exc_info=True)
+            # #region agent log
+            try:
+                with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                    f.write(json.dumps({"sessionId": "debug-session", "runId": "worker-task", "hypothesisId": "C", "location": "profiler_tasks.py:_run", "message": "Database initialization failed", "data": {"profile_id": profile_id, "error": str(db_init_error)}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+            except:
+                pass
+            # #endregion
             return {"status": "error", "reason": f"database_init_failed: {str(db_init_error)}"}
 
         logger.info(f"Fetching profile {profile_id}")
+        # #region agent log
+        try:
+            with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                f.write(json.dumps({"sessionId": "debug-session", "runId": "worker-task", "hypothesisId": "D", "location": "profiler_tasks.py:_run", "message": "Fetching profile from database", "data": {"profile_id": profile_id}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+        except:
+            pass
+        # #endregion
         profile = await Profile.get(PydanticObjectId(profile_id))
         if not profile:
             logger.error("Profile not found in pipeline", extra={"profile_id": profile_id})
+            # #region agent log
+            try:
+                with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                    f.write(json.dumps({"sessionId": "debug-session", "runId": "worker-task", "hypothesisId": "D", "location": "profiler_tasks.py:_run", "message": "Profile not found", "data": {"profile_id": profile_id}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+            except:
+                pass
+            # #endregion
             return {"status": "error", "reason": "profile_not_found"}
 
         try:
             # SCRAPING
             await profile.mark_status(ProfileStatus.SCRAPING)
+            # #region agent log
+            try:
+                with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                    f.write(json.dumps({"sessionId": "debug-session", "runId": "worker-task", "hypothesisId": "E", "location": "profiler_tasks.py:_run", "message": "Starting scraping phase", "data": {"profile_id": profile_id, "urls": {"instagram": bool(profile.urls.instagramUrl), "facebook": bool(profile.urls.facebookUrl), "twitter": bool(profile.urls.twitterUrl), "linkedin": bool(profile.urls.linkedinUrl), "reddit": bool(profile.urls.redditUrl), "blogs": len(profile.urls.blogUrls or [])}}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+            except:
+                pass
+            # #endregion
             scraped_items: list[ScrapedData] = await scrape_profile(profile)
+            # #region agent log
+            try:
+                with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                    f.write(json.dumps({"sessionId": "debug-session", "runId": "worker-task", "hypothesisId": "E", "location": "profiler_tasks.py:_run", "message": "Scraping phase completed", "data": {"profile_id": profile_id, "scraped_count": len(scraped_items), "scraped_ids": [str(item.id) for item in scraped_items]}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+            except:
+                pass
+            # #endregion
 
             # PROCESSING
             await profile.mark_status(ProfileStatus.PROCESSING)

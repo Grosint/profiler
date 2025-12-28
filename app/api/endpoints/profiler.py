@@ -40,8 +40,24 @@ async def list_profiles_endpoint(
 async def create_profile(payload: CreateProfileRequest) -> APIResponse[ProfileStatusResponse]:
     # TODO: URL validation and domain checks
     profile = await create_profile_job(payload)
+    # #region agent log
+    import json
+    import os
+    try:
+        with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+            f.write(json.dumps({"sessionId": "debug-session", "runId": "profile-create", "hypothesisId": "A", "location": "profiler.py:create_profile", "message": "Profile created, enqueueing Celery task", "data": {"profile_id": str(profile.id), "urls": {"instagram": bool(payload.urls.instagramUrl), "facebook": bool(payload.urls.facebookUrl), "twitter": bool(payload.urls.twitterUrl), "linkedin": bool(payload.urls.linkedinUrl), "reddit": bool(payload.urls.redditUrl), "blogs": len(payload.urls.blogUrls or [])}}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+    except:
+        pass
+    # #endregion
     # Enqueue async pipeline
-    run_profile_pipeline.delay(str(profile.id))
+    task_result = run_profile_pipeline.delay(str(profile.id))
+    # #region agent log
+    try:
+        with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+            f.write(json.dumps({"sessionId": "debug-session", "runId": "profile-create", "hypothesisId": "A", "location": "profiler.py:create_profile", "message": "Celery task enqueued", "data": {"profile_id": str(profile.id), "task_id": str(task_result.id), "task_state": task_result.state}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+    except:
+        pass
+    # #endregion
     status = await get_profile_status(str(profile.id))
     return APIResponse(success=True, data=status)
 

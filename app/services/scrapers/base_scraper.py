@@ -32,7 +32,23 @@ class BaseScraper(ABC):
                 metadata=metadata,
                 scrapeStatus=ScrapeStatus.SUCCESS,
             )
+            # #region agent log
+            import json
+            import os
+            try:
+                with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                    f.write(json.dumps({"sessionId": "debug-session", "runId": "base-scraper", "hypothesisId": "G", "location": "base_scraper.py:scrape", "message": "Before scraped.insert()", "data": {"profile_id": str(profile.id), "platform": str(self.platform), "url": url, "content_length": len(text)}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+            except:
+                pass
+            # #endregion
             await scraped.insert()
+            # #region agent log
+            try:
+                with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                    f.write(json.dumps({"sessionId": "debug-session", "runId": "base-scraper", "hypothesisId": "G", "location": "base_scraper.py:scrape", "message": "After scraped.insert() - SUCCESS", "data": {"profile_id": str(profile.id), "platform": str(self.platform), "url": url, "scraped_id": str(scraped.id)}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+            except:
+                pass
+            # #endregion
             logger.info(
                 "Scrape succeeded",
                 extra={"profile_id": str(profile.id), "platform": self.platform, "url": url},
@@ -52,7 +68,21 @@ class BaseScraper(ABC):
                 scrapeStatus=ScrapeStatus.FAILED,
                 errorMessage=str(exc),
             )
+            # #region agent log
+            try:
+                with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                    f.write(json.dumps({"sessionId": "debug-session", "runId": "base-scraper", "hypothesisId": "G", "location": "base_scraper.py:scrape", "message": "Before scraped.insert() - FAILED", "data": {"profile_id": str(getattr(profile, "id", "")), "platform": str(self.platform), "url": url, "error": str(exc)}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+            except:
+                pass
+            # #endregion
             await scraped.insert()
+            # #region agent log
+            try:
+                with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                    f.write(json.dumps({"sessionId": "debug-session", "runId": "base-scraper", "hypothesisId": "G", "location": "base_scraper.py:scrape", "message": "After scraped.insert() - FAILED", "data": {"profile_id": str(getattr(profile, "id", "")), "platform": str(self.platform), "url": url, "scraped_id": str(scraped.id)}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+            except:
+                pass
+            # #endregion
             return scraped
 
     def extract_text(self, html: str, headers: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:

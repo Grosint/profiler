@@ -17,10 +17,26 @@ async def scrape_profile(profile: Profile) -> List[ScrapedData]:
     """
     Scrape all URLs associated with a profile using platform-specific scrapers.
     """
+    # #region agent log
+    import json
+    import os
+    try:
+        with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+            f.write(json.dumps({"sessionId": "debug-session", "runId": "scraping-service", "hypothesisId": "F", "location": "scraping_service.py:scrape_profile", "message": "Starting scrape_profile", "data": {"profile_id": str(profile.id), "urls": {"instagram": bool(profile.urls.instagramUrl), "facebook": bool(profile.urls.facebookUrl), "twitter": bool(profile.urls.twitterUrl), "linkedin": bool(profile.urls.linkedinUrl), "reddit": bool(profile.urls.redditUrl), "blogs": len(profile.urls.blogUrls or [])}}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+    except:
+        pass
+    # #endregion
     tasks: List[ScrapedData] = []
 
     insta = profile.urls.instagramUrl
     if insta:
+        # #region agent log
+        try:
+            with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                f.write(json.dumps({"sessionId": "debug-session", "runId": "scraping-service", "hypothesisId": "F", "location": "scraping_service.py:scrape_profile", "message": "Scraping Instagram URL", "data": {"profile_id": str(profile.id), "url": insta}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+        except:
+            pass
+        # #endregion
         scraper = InstagramScraper()
         tasks.append(await scraper.scrape(profile, insta))
 
@@ -54,4 +70,11 @@ async def scrape_profile(profile: Profile) -> List[ScrapedData]:
         "Scraping phase finished",
         extra={"profile_id": str(profile.id), "scraped_count": len(tasks)},
     )
+    # #region agent log
+    try:
+        with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+            f.write(json.dumps({"sessionId": "debug-session", "runId": "scraping-service", "hypothesisId": "F", "location": "scraping_service.py:scrape_profile", "message": "Scraping phase finished", "data": {"profile_id": str(profile.id), "scraped_count": len(tasks), "scraped_ids": [str(item.id) for item in tasks]}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+    except:
+        pass
+    # #endregion
     return tasks
