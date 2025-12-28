@@ -76,7 +76,7 @@ def create_app() -> FastAPI:
         pass
     # #endregion
 
-    # Request ID middleware + CORS header fallback
+    # Request ID middleware + ALWAYS add CORS headers (runs AFTER CORSMiddleware)
     @app.middleware("http")
     async def add_request_id_and_cors(request: Request, call_next: Callable):  # type: ignore[override]
         request_id = str(uuid.uuid4())
@@ -88,7 +88,6 @@ def create_app() -> FastAPI:
         import os
         origin = request.headers.get("origin", "NO_ORIGIN")
         try:
-            current_settings = get_settings()
             with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
                 f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-request", "hypothesisId": "B", "location": "main.py:add_request_id_and_cors", "message": "Incoming request", "data": {"method": request.method, "path": str(request.url.path), "origin": origin, "user_agent": request.headers.get("user-agent", "NO_UA")[:50]}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
         except:
@@ -96,20 +95,35 @@ def create_app() -> FastAPI:
         # #endregion
 
         request_logger.info("Incoming request", extra={"request_id": request_id, "path": request.url.path, "method": request.method, "origin": request.headers.get("origin")})
+        
+        # Handle OPTIONS preflight requests explicitly
+        if request.method == "OPTIONS":
+            logger.info(f"Handling OPTIONS preflight for {request.url.path}")
+            return Response(
+                status_code=200,
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Allow-Credentials": "false",
+                    "Access-Control-Max-Age": "3600",
+                    "X-Request-ID": request_id,
+                },
+            )
+        
         response = await call_next(request)
 
-        # FALLBACK: Ensure CORS headers are always present (in case middleware didn't add them)
-        if "access-control-allow-origin" not in response.headers:
-            response.headers["Access-Control-Allow-Origin"] = "*"
-            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
-            response.headers["Access-Control-Allow-Headers"] = "*"
-            response.headers["Access-Control-Allow-Credentials"] = "false"
-            logger.warning(f"CORS headers added by fallback middleware for {request.url.path}")
+        # ALWAYS add CORS headers to every response (override any existing ones)
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "false"
+        logger.info(f"CORS headers FORCED on response for {request.method} {request.url.path}")
 
         # #region agent log
         try:
             with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
-                f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-response", "hypothesisId": "B", "location": "main.py:add_request_id_and_cors", "message": "Response headers", "data": {"status_code": response.status_code, "access_control_allow_origin": response.headers.get("access-control-allow-origin", "NOT_SET"), "access_control_allow_methods": response.headers.get("access-control-allow-methods", "NOT_SET"), "access_control_allow_headers": response.headers.get("access-control-allow-headers", "NOT_SET"), "cors_headers_added_by_fallback": "access-control-allow-origin" not in response.headers}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+                f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-response", "hypothesisId": "B", "location": "main.py:add_request_id_and_cors", "message": "Response headers", "data": {"status_code": response.status_code, "method": request.method, "path": str(request.url.path), "access_control_allow_origin": response.headers.get("access-control-allow-origin", "NOT_SET"), "access_control_allow_methods": response.headers.get("access-control-allow-methods", "NOT_SET"), "access_control_allow_headers": response.headers.get("access-control-allow-headers", "NOT_SET")}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
         except:
             pass
         # #endregion
