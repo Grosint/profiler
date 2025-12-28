@@ -51,7 +51,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=["*"],  # Allow all origins
         allow_credentials=False,  # Must be False when using "*"
-        allow_methods=["*"],  # Allow all methods
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],  # All common methods
         allow_headers=["*"],  # Allow all headers
         expose_headers=["*"],  # Expose all headers
         max_age=3600,
@@ -99,12 +99,14 @@ def create_app() -> FastAPI:
             pass
         # #endregion
 
-        # Simple: ensure CORS headers are on every response (CORSMiddleware should handle this, but safety net)
-        if "access-control-allow-origin" not in response.headers:
-            response.headers["Access-Control-Allow-Origin"] = "*"
-            response.headers["Access-Control-Allow-Methods"] = "*"
-            response.headers["Access-Control-Allow-Headers"] = "*"
-            response.headers["Access-Control-Allow-Credentials"] = "false"
+        # Simple: ALWAYS add CORS headers to every response (force them)
+        # This ensures CORS works even if CORSMiddleware fails for some reason
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "false"
+        if request.method == "OPTIONS":
+            response.headers["Access-Control-Max-Age"] = "3600"
 
         # #region agent log
         try:
