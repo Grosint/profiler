@@ -35,31 +35,35 @@ def create_app() -> FastAPI:
         pass
     # #endregion
 
-    # Force CORS to allow all origins (*) - ignore environment variable
+    # CORS Configuration - Allow all origins including frontend
+    # Frontend URL: https://frontend-production-0fff.up.railway.app
+    frontend_origin = "https://frontend-production-0fff.up.railway.app"
+    # Use "*" to allow all origins (including the frontend)
     cors_origins = ["*"]
     cors_credentials = False  # Must be False when using "*"
 
-    logger.info(f"CORS Configuration: allow_origins={cors_origins} (forced to allow all)")
+    logger.info(f"CORS Configuration: allow_origins={cors_origins} (allows all including {frontend_origin})")
+    logger.info(f"CORS Frontend Origin: {frontend_origin}")
     logger.info(f"CORS Raw String from env: {settings.CORS_ALLOW_ORIGINS_STR}")
-    logger.warning(f"CORS Environment Variable: {os.getenv('CORS_ALLOW_ORIGINS', 'NOT SET - using forced *')}")
+    logger.warning(f"CORS Environment Variable: {os.getenv('CORS_ALLOW_ORIGINS', 'NOT SET - using * to allow all')}")
 
     # #region agent log
     try:
         with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
-            f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-config", "hypothesisId": "C", "location": "main.py:create_app", "message": "CORS middleware configuration", "data": {"allow_origins": cors_origins, "allow_credentials": cors_credentials, "allow_methods": settings.CORS_ALLOW_METHODS}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+            f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-config", "hypothesisId": "C", "location": "main.py:create_app", "message": "CORS middleware configuration", "data": {"allow_origins": cors_origins, "frontend_origin": frontend_origin, "allow_credentials": cors_credentials, "allow_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"]}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
     except:
         pass
     # #endregion
 
-    # CORS - Ensure middleware is added FIRST (before other middleware)
+    # CORS - CRITICAL: Middleware MUST be added FIRST (before routers and other middleware)
     # FastAPI CORSMiddleware must be added first to handle preflight OPTIONS requests
-    # Using explicit list for methods and headers to ensure compatibility
+    # This is the FIRST middleware added to ensure it processes all requests
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Force allow all origins
+        allow_origins=["*"],  # Allow all origins (including frontend)
         allow_credentials=False,  # Must be False when using "*"
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],  # Explicit methods
-        allow_headers=["*"],  # Allow all headers
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
+        allow_headers=["*"],  # Allow all headers including Content-Type, Authorization, etc.
         expose_headers=["*"],  # Expose all headers
         max_age=3600,  # Cache preflight for 1 hour
     )
@@ -72,9 +76,9 @@ def create_app() -> FastAPI:
         pass
     # #endregion
 
-    # Request ID middleware
+    # Request ID middleware + CORS header fallback
     @app.middleware("http")
-    async def add_request_id(request: Request, call_next: Callable):  # type: ignore[override]
+    async def add_request_id_and_cors(request: Request, call_next: Callable):  # type: ignore[override]
         request_id = str(uuid.uuid4())
         request.state.request_id = request_id
         request_logger = logging.getLogger("request")
@@ -86,7 +90,7 @@ def create_app() -> FastAPI:
         try:
             current_settings = get_settings()
             with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
-                f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-request", "hypothesisId": "B", "location": "main.py:add_request_id", "message": "Incoming request", "data": {"method": request.method, "path": str(request.url.path), "origin": origin, "user_agent": request.headers.get("user-agent", "NO_UA")[:50], "allowed_origins": current_settings.CORS_ALLOW_ORIGINS, "origin_in_allowed": origin in current_settings.CORS_ALLOW_ORIGINS or "*" in current_settings.CORS_ALLOW_ORIGINS}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+                f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-request", "hypothesisId": "B", "location": "main.py:add_request_id_and_cors", "message": "Incoming request", "data": {"method": request.method, "path": str(request.url.path), "origin": origin, "user_agent": request.headers.get("user-agent", "NO_UA")[:50]}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
         except:
             pass
         # #endregion
@@ -94,10 +98,18 @@ def create_app() -> FastAPI:
         request_logger.info("Incoming request", extra={"request_id": request_id, "path": request.url.path, "method": request.method, "origin": request.headers.get("origin")})
         response = await call_next(request)
 
+        # FALLBACK: Ensure CORS headers are always present (in case middleware didn't add them)
+        if "access-control-allow-origin" not in response.headers:
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            response.headers["Access-Control-Allow-Credentials"] = "false"
+            logger.warning(f"CORS headers added by fallback middleware for {request.url.path}")
+
         # #region agent log
         try:
             with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
-                f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-response", "hypothesisId": "B", "location": "main.py:add_request_id", "message": "Response headers", "data": {"status_code": response.status_code, "access_control_allow_origin": response.headers.get("access-control-allow-origin", "NOT_SET"), "access_control_allow_methods": response.headers.get("access-control-allow-methods", "NOT_SET"), "access_control_allow_headers": response.headers.get("access-control-allow-headers", "NOT_SET")}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+                f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-response", "hypothesisId": "B", "location": "main.py:add_request_id_and_cors", "message": "Response headers", "data": {"status_code": response.status_code, "access_control_allow_origin": response.headers.get("access-control-allow-origin", "NOT_SET"), "access_control_allow_methods": response.headers.get("access-control-allow-methods", "NOT_SET"), "access_control_allow_headers": response.headers.get("access-control-allow-headers", "NOT_SET"), "cors_headers_added_by_fallback": "access-control-allow-origin" not in response.headers}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
         except:
             pass
         # #endregion
@@ -125,16 +137,24 @@ def create_app() -> FastAPI:
     # Error handlers
     init_error_handlers(app)
 
-    # Explicit OPTIONS handler for CORS preflight (backup)
+    # Explicit OPTIONS handler for CORS preflight (backup - runs after middleware)
     @app.options("/{full_path:path}")
-    async def options_handler(full_path: str) -> Response:
+    async def options_handler(request: Request, full_path: str) -> Response:
         """Explicit OPTIONS handler for CORS preflight requests."""
+        origin = request.headers.get("origin", "*")
+        # Allow the frontend origin explicitly
+        if origin == "https://frontend-production-0fff.up.railway.app":
+            allow_origin = origin
+        else:
+            allow_origin = "*"
+
         return Response(
             status_code=200,
             headers={
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+                "Access-Control-Allow-Origin": allow_origin,
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD",
                 "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Credentials": "false",
                 "Access-Control-Max-Age": "3600",
             },
         )
