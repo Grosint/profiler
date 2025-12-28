@@ -74,12 +74,13 @@ Dockerfile
 *.cache
 
 # ML Models / Data (if large, consider excluding)
+# Note: Only exclude top-level models/ directory, not app/models/
 *.pkl
 *.pickle
 *.h5
 *.hdf5
-models/
-data/
+/models/
+/data/
 *.csv
 
 # Playwright cache (will be installed during build)
