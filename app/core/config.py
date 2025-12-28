@@ -50,30 +50,10 @@ class Settings(BaseSettings):
         Parse CORS_ALLOW_ORIGINS from comma-separated string.
         This computed field converts the string to a list on access.
         """
-        # #region agent log
-        import json
-        try:
-            with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
-                f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-parse-v3", "hypothesisId": "C", "location": "config.py:CORS_ALLOW_ORIGINS", "message": "Computing CORS_ALLOW_ORIGINS", "data": {"raw_value": self.CORS_ALLOW_ORIGINS_STR[:100]}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
-        except:
-            pass
-        # #endregion
-
         value = self.CORS_ALLOW_ORIGINS_STR
         if value.strip() == "*":
-            result = ["*"]
-        else:
-            result = [origin.strip() for origin in value.split(",") if origin.strip()]
-
-        # #region agent log
-        try:
-            with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
-                f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-parse-v3", "hypothesisId": "C", "location": "config.py:CORS_ALLOW_ORIGINS", "message": "Computed CORS_ALLOW_ORIGINS list", "data": {"result": result}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
-        except:
-            pass
-        # #endregion
-
-        return result
+            return ["*"]
+        return [origin.strip() for origin in value.split(",") if origin.strip()]
 
     # Logging
     LOG_LEVEL: str = "INFO"

@@ -1,0 +1,9 @@
+# Ignore Dockerfile to force Nixpacks usage
+Dockerfile
+.dockerignore
+
+# Development files
+node_modules/
+.vite/
+dist/
+*.log
