@@ -2,7 +2,7 @@ import logging
 import uuid
 from typing import Callable
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
@@ -51,16 +51,26 @@ def create_app() -> FastAPI:
         pass
     # #endregion
 
-    # CORS - Ensure middleware is added before other middleware
+    # CORS - Ensure middleware is added FIRST (before other middleware)
     # FastAPI CORSMiddleware must be added first to handle preflight OPTIONS requests
+    # Using explicit list for methods and headers to ensure compatibility
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=cors_origins,
-        allow_credentials=cors_credentials,
-        allow_methods=settings.CORS_ALLOW_METHODS,
-        allow_headers=["*"],  # Explicitly allow all headers for CORS
+        allow_origins=["*"],  # Force allow all origins
+        allow_credentials=False,  # Must be False when using "*"
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],  # Explicit methods
+        allow_headers=["*"],  # Allow all headers
         expose_headers=["*"],  # Expose all headers
+        max_age=3600,  # Cache preflight for 1 hour
     )
+
+    # #region agent log
+    try:
+        with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+            f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-middleware", "hypothesisId": "D", "location": "main.py:create_app", "message": "CORS middleware added", "data": {"allow_origins": ["*"], "allow_credentials": False, "middleware_added": True}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+    except:
+        pass
+    # #endregion
 
     # Request ID middleware
     @app.middleware("http")
@@ -114,6 +124,20 @@ def create_app() -> FastAPI:
 
     # Error handlers
     init_error_handlers(app)
+
+    # Explicit OPTIONS handler for CORS preflight (backup)
+    @app.options("/{full_path:path}")
+    async def options_handler(full_path: str) -> Response:
+        """Explicit OPTIONS handler for CORS preflight requests."""
+        return Response(
+            status_code=200,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Max-Age": "3600",
+            },
+        )
 
     @app.on_event("startup")
     async def on_startup() -> None:
