@@ -95,7 +95,7 @@ def create_app() -> FastAPI:
         # #endregion
 
         request_logger.info("Incoming request", extra={"request_id": request_id, "path": request.url.path, "method": request.method, "origin": request.headers.get("origin")})
-        
+
         # Handle OPTIONS preflight requests explicitly
         if request.method == "OPTIONS":
             logger.info(f"Handling OPTIONS preflight for {request.url.path}")
@@ -110,7 +110,7 @@ def create_app() -> FastAPI:
                     "X-Request-ID": request_id,
                 },
             )
-        
+
         response = await call_next(request)
 
         # ALWAYS add CORS headers to every response (override any existing ones)
