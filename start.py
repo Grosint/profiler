@@ -31,13 +31,69 @@ logger.info(f"Project root: {PROJECT_ROOT}")
 logger.info(f"Python path: {sys.path}")
 
 # ------------------------------------------------------------------
-# Import FastAPI app AFTER path setup
+# Verify file structure exists BEFORE any imports
+# ------------------------------------------------------------------
+import os
+app_dir = PROJECT_ROOT / "app"
+models_dir = app_dir / "models"
+logger.info(f"Checking file structure:")
+logger.info(f"  PROJECT_ROOT: {PROJECT_ROOT}")
+logger.info(f"  PROJECT_ROOT exists: {PROJECT_ROOT.exists()}")
+logger.info(f"  app/ exists: {app_dir.exists()}")
+logger.info(f"  app/models/ exists: {models_dir.exists()}")
+if models_dir.exists():
+    contents = list(models_dir.iterdir())
+    logger.info(f"  app/models/ contents ({len(contents)} items): {[str(c.name) for c in contents]}")
+    init_file = models_dir / "__init__.py"
+    logger.info(f"  app/models/__init__.py exists: {init_file.exists()}")
+    if init_file.exists():
+        logger.info(f"  app/models/__init__.py size: {init_file.stat().st_size} bytes")
+
+# ------------------------------------------------------------------
+# Test imports step by step with detailed error handling
 # ------------------------------------------------------------------
 try:
+    logger.info("Step 1: Testing 'import app'")
+    import app
+    logger.info(f"✓ Imported app from {app.__file__}")
+    logger.info(f"  app.__path__: {getattr(app, '__path__', 'N/A')}")
+
+    logger.info("Step 2: Testing 'from app import models'")
+    from app import models
+    logger.info(f"✓ Imported app.models from {models.__file__}")
+    logger.info(f"  models.__path__: {getattr(models, '__path__', 'N/A')}")
+
+    logger.info("Step 3: Testing 'from app.models import profile'")
+    from app.models import profile
+    logger.info(f"✓ Imported app.models.profile from {profile.__file__}")
+
+    logger.info("Step 4: Testing 'from app.core.database import init_database'")
+    from app.core.database import init_database
+    logger.info("✓ Imported app.core.database.init_database")
+
+    logger.info("Step 5: Testing 'from app.main import app'")
     from app.main import app as fastapi_app
     logger.info("✓ Successfully imported FastAPI app")
+except ImportError as e:
+    logger.error(f"ImportError: {e}")
+    logger.error(f"  Error name: {e.name}")
+    logger.error(f"  Error path: {getattr(e, 'path', 'N/A')}")
+    logger.error(f"  Current sys.path: {sys.path}")
+    logger.error(f"  Current working directory: {os.getcwd()}")
+    # Try to find where app package actually is
+    import importlib.util
+    try:
+        spec = importlib.util.find_spec("app")
+        if spec:
+            logger.error(f"  app package location: {spec.origin}")
+            logger.error(f"  app package submodule_search_locations: {spec.submodule_search_locations}")
+        else:
+            logger.error("  app package spec not found!")
+    except Exception as spec_e:
+        logger.error(f"  Could not get app spec: {spec_e}")
+    raise
 except Exception as e:
-    logger.exception("Failed to import FastAPI app")
+    logger.exception("Failed during import test")
     raise e
 
 # ------------------------------------------------------------------
