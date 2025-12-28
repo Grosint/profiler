@@ -98,3 +98,6 @@ See `frontend/README.md` for detailed frontend setup and development instruction
 - Scraping, ML, and LLM integrations are implemented via modular services with placeholder logic.
 - External LLM API calls are **not** performed by default; integration hooks are provided for later wiring.
 - The frontend uses mock data for the dashboard list view. In production, implement a profiles list endpoint.
+
+
+change
