@@ -1,0 +1,3 @@
+"""
+MongoDB/Beanie document models.
+"""

@@ -158,13 +158,14 @@ coverage.xml
 .pytest_cache/
 
 # ML Models / Data
+# Note: Only exclude top-level models/ directory, not app/models/
 *.pkl
 *.pickle
 *.h5
 *.hdf5
 *.model
-models/
-data/
+/models/
+/data/
 *.csv
 *.json.bak
 
