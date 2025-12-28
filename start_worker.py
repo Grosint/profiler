@@ -53,6 +53,14 @@ if __name__ == "__main__":
     import subprocess
 
     logger.info("Starting Celery worker...")
+    # #region agent log
+    import json
+    try:
+        with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+            f.write(json.dumps({"sessionId": "debug-session", "runId": "worker-startup", "hypothesisId": "H", "location": "start_worker.py:__main__", "message": "Starting Celery worker process", "data": {"project_root": str(PROJECT_ROOT), "pythonpath": os.environ.get("PYTHONPATH", "not set")}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+    except:
+        pass
+    # #endregion
     # Run celery worker - it will use the imported celery_app
     # The -A flag tells celery where to find the app
     cmd = [
@@ -64,6 +72,13 @@ if __name__ == "__main__":
     ]
 
     logger.info(f"Command: {' '.join(cmd)}")
+    # #region agent log
+    try:
+        with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+            f.write(json.dumps({"sessionId": "debug-session", "runId": "worker-startup", "hypothesisId": "H", "location": "start_worker.py:__main__", "message": "Executing Celery worker command", "data": {"command": " ".join(cmd)}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+    except:
+        pass
+    # #endregion
     # Use execve to replace current process with celery worker
     # This ensures PYTHONPATH is preserved
     os.execve(
