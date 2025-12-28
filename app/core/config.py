@@ -1,7 +1,7 @@
 from functools import lru_cache
-from typing import Optional, Union
+from typing import Optional
 
-from pydantic import Field, field_validator
+from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,60 +37,43 @@ class Settings(BaseSettings):
     HTTP_CLIENT_CIRCUIT_BREAKER_THRESHOLD: int = 5
     HTTP_CLIENT_CIRCUIT_BREAKER_RESET_SECONDS: int = 60
 
-    # CORS
-    CORS_ALLOW_ORIGINS: list[str] = ["*"]
+    # CORS - Store as string to avoid JSON parsing issues
+    _CORS_ALLOW_ORIGINS_STR: str = Field(default="*", alias="CORS_ALLOW_ORIGINS")
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: list[str] = ["*"]
     CORS_ALLOW_HEADERS: list[str] = ["*"]
 
-    @field_validator("CORS_ALLOW_ORIGINS", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, v: Union[str, list]) -> list[str]:
+    @computed_field
+    @property
+    def CORS_ALLOW_ORIGINS(self) -> list[str]:
         """
-        Parse CORS_ALLOW_ORIGINS from comma-separated string or list.
-        Environment variables are strings, so we need to split them.
+        Parse CORS_ALLOW_ORIGINS from comma-separated string.
+        This computed field converts the string to a list on access.
         """
         # #region agent log
         import json
-        import os
         try:
             with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
-                f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-parse", "hypothesisId": "A", "location": "config.py:parse_cors_origins", "message": "Parsing CORS_ALLOW_ORIGINS", "data": {"input_type": type(v).__name__, "input_value": str(v)[:100] if isinstance(v, str) else v, "env_value": os.getenv("CORS_ALLOW_ORIGINS", "NOT_SET")[:100]}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+                f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-parse-v3", "hypothesisId": "C", "location": "config.py:CORS_ALLOW_ORIGINS", "message": "Computing CORS_ALLOW_ORIGINS", "data": {"raw_value": self._CORS_ALLOW_ORIGINS_STR[:100]}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
         except:
             pass
         # #endregion
 
-        # If already a list, return as-is
-        if isinstance(v, list):
-            # #region agent log
-            try:
-                with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
-                    f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-parse", "hypothesisId": "A", "location": "config.py:parse_cors_origins", "message": "CORS_ALLOW_ORIGINS already a list", "data": {"result": v}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
-            except:
-                pass
-            # #endregion
-            return v
+        value = self._CORS_ALLOW_ORIGINS_STR
+        if value.strip() == "*":
+            result = ["*"]
+        else:
+            result = [origin.strip() for origin in value.split(",") if origin.strip()]
 
-        # If string, split by comma and strip whitespace
-        if isinstance(v, str):
-            # Handle "*" special case
-            if v.strip() == "*":
-                result = ["*"]
-            else:
-                result = [origin.strip() for origin in v.split(",") if origin.strip()]
+        # #region agent log
+        try:
+            with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-parse-v3", "hypothesisId": "C", "location": "config.py:CORS_ALLOW_ORIGINS", "message": "Computed CORS_ALLOW_ORIGINS list", "data": {"result": result}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+        except:
+            pass
+        # #endregion
 
-            # #region agent log
-            try:
-                with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
-                    f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-parse", "hypothesisId": "A", "location": "config.py:parse_cors_origins", "message": "Parsed CORS_ALLOW_ORIGINS from string", "data": {"input": v[:100], "result": result}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
-            except:
-                pass
-            # #endregion
-
-            return result
-
-        # Fallback: return as-is (shouldn't happen)
-        return v
+        return result
 
     # Logging
     LOG_LEVEL: str = "INFO"
