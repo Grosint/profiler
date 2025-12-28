@@ -37,6 +37,7 @@ def create_app() -> FastAPI:
 
     logger.info(f"CORS Configuration: allow_origins={settings.CORS_ALLOW_ORIGINS}")
     logger.info(f"CORS Raw String: {settings.CORS_ALLOW_ORIGINS_STR}")
+    logger.warning(f"CORS Environment Variable: {os.getenv('CORS_ALLOW_ORIGINS', 'NOT SET - using default *')}")
 
     # CORS - Ensure middleware is added before other middleware
     # FastAPI CORSMiddleware must be added first to handle preflight OPTIONS requests
@@ -59,9 +60,11 @@ def create_app() -> FastAPI:
         # #region agent log
         import json
         import os
+        origin = request.headers.get("origin", "NO_ORIGIN")
         try:
+            current_settings = get_settings()
             with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
-                f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-request", "hypothesisId": "B", "location": "main.py:add_request_id", "message": "Incoming request", "data": {"method": request.method, "path": str(request.url.path), "origin": request.headers.get("origin", "NO_ORIGIN"), "user_agent": request.headers.get("user-agent", "NO_UA")[:50]}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+                f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-request", "hypothesisId": "B", "location": "main.py:add_request_id", "message": "Incoming request", "data": {"method": request.method, "path": str(request.url.path), "origin": origin, "user_agent": request.headers.get("user-agent", "NO_UA")[:50], "allowed_origins": current_settings.CORS_ALLOW_ORIGINS, "origin_in_allowed": origin in current_settings.CORS_ALLOW_ORIGINS or "*" in current_settings.CORS_ALLOW_ORIGINS}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
         except:
             pass
         # #endregion
