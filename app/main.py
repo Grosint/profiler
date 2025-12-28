@@ -46,21 +46,28 @@ def create_app() -> FastAPI:
         request_logger = logging.getLogger("request")
         request_logger.info("Incoming request", extra={"request_id": request_id, "path": request.url.path, "method": request.method, "origin": request.headers.get("origin")})
 
-        # CRITICAL: Do NOT intercept OPTIONS requests here - let CORSMiddleware handle them
-        # The CORSMiddleware (added first) will process OPTIONS requests properly
-        # If we intercept here, CORSMiddleware never gets to run (middleware runs in reverse order)
+        # Handle OPTIONS preflight explicitly as backup
+        if request.method == "OPTIONS":
+            return Response(
+                status_code=200,
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Allow-Credentials": "false",
+                    "Access-Control-Max-Age": "3600",
+                    "X-Request-ID": request_id,
+                },
+            )
 
         response = await call_next(request)
 
-        # Simple: ALWAYS add CORS headers to every response (force them)
-        # This ensures CORS works even if CORSMiddleware fails for some reason
+        # ALWAYS force CORS headers on every response (override any existing ones)
+        # This ensures CORS works even if CORSMiddleware fails or headers are stripped
         response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
         response.headers["Access-Control-Allow-Headers"] = "*"
         response.headers["Access-Control-Allow-Credentials"] = "false"
-        if request.method == "OPTIONS":
-            response.headers["Access-Control-Max-Age"] = "3600"
-
         response.headers["X-Request-ID"] = request_id
         return response
 
