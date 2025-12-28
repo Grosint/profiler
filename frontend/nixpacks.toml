@@ -11,6 +11,4 @@ cmds = [
   "npm run build"
 ]
 
-# Note: Start command should be set in Railway dashboard:
-# npx serve -s dist -l $PORT
-# Or use a Procfile if preferred
+# Note: Start command is defined in railway.json or Procfile
