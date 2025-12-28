@@ -84,6 +84,7 @@ This application is configured for deployment on Railway. See [RAILWAY_DEPLOYMEN
 5. Deploy!
 
 The application includes:
+
 - `Procfile` - Defines web and worker processes
 - `railway.json` - Railway-specific configuration
 - `.railwayignore` - Files to exclude from deployment

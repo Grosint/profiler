@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     HTTP_CLIENT_CIRCUIT_BREAKER_RESET_SECONDS: int = 60
 
     # CORS - Store as string to avoid JSON parsing issues
-    _CORS_ALLOW_ORIGINS_STR: str = Field(default="*", alias="CORS_ALLOW_ORIGINS")
+    CORS_ALLOW_ORIGINS_STR: str = Field(default="*", alias="CORS_ALLOW_ORIGINS", exclude=True)
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: list[str] = ["*"]
     CORS_ALLOW_HEADERS: list[str] = ["*"]
@@ -54,12 +54,12 @@ class Settings(BaseSettings):
         import json
         try:
             with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
-                f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-parse-v3", "hypothesisId": "C", "location": "config.py:CORS_ALLOW_ORIGINS", "message": "Computing CORS_ALLOW_ORIGINS", "data": {"raw_value": self._CORS_ALLOW_ORIGINS_STR[:100]}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+                f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-parse-v3", "hypothesisId": "C", "location": "config.py:CORS_ALLOW_ORIGINS", "message": "Computing CORS_ALLOW_ORIGINS", "data": {"raw_value": self.CORS_ALLOW_ORIGINS_STR[:100]}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
         except:
             pass
         # #endregion
 
-        value = self._CORS_ALLOW_ORIGINS_STR
+        value = self.CORS_ALLOW_ORIGINS_STR
         if value.strip() == "*":
             result = ["*"]
         else:
