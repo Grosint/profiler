@@ -1,10 +1,14 @@
 """
-Production entrypoint for background worker
+Production entrypoint for Celery worker
+Works on:
+- Local
+- Docker
+- Railway
 """
 
 import sys
 import logging
-import time
+import os
 from pathlib import Path
 
 # ------------------------------------------------------------------
@@ -13,6 +17,9 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+
+# Set PYTHONPATH environment variable for Celery subprocess
+os.environ["PYTHONPATH"] = str(PROJECT_ROOT)
 
 # ------------------------------------------------------------------
 # Logging
@@ -23,40 +30,44 @@ logging.basicConfig(
 )
 logger = logging.getLogger("worker")
 
-logger.info("Starting Worker service")
+logger.info("Starting Celery worker service")
 logger.info(f"Project root: {PROJECT_ROOT}")
-logger.info(f"Python path: {sys.path}")
+logger.info(f"Python path: {sys.path[:3]}...")
+logger.info(f"PYTHONPATH: {os.environ.get('PYTHONPATH', 'not set')}")
 
 # ------------------------------------------------------------------
-# Import worker tasks AFTER path setup
+# Verify Celery app can be imported AFTER path setup
 # ------------------------------------------------------------------
 try:
-    from app.tasks.profiler_tasks import run_profiler
-    from app.tasks.post_tasks import run_post_tasks
+    from app.core.celery_app import celery_app
+    logger.info("✓ Successfully imported Celery app")
 except Exception as e:
-    logger.exception("Failed to import worker tasks")
+    logger.exception("Failed to import Celery app")
     raise e
 
 # ------------------------------------------------------------------
-# Worker loop
+# Start Celery worker
 # ------------------------------------------------------------------
-def main():
-    logger.info("Worker initialized successfully")
-
-    while True:
-        try:
-            logger.info("Running profiler tasks")
-            run_profiler()
-
-            logger.info("Running post tasks")
-            run_post_tasks()
-
-        except Exception:
-            logger.exception("Worker cycle failed")
-
-        # Prevent CPU burn
-        time.sleep(5)
-
-
 if __name__ == "__main__":
-    main()
+    # Use celery's command-line interface but ensure path is correct
+    import subprocess
+
+    logger.info("Starting Celery worker...")
+    # Run celery worker - it will use the imported celery_app
+    # The -A flag tells celery where to find the app
+    cmd = [
+        sys.executable,
+        "-m", "celery",
+        "-A", "app.core.celery_app.celery_app",
+        "worker",
+        "--loglevel=info"
+    ]
+
+    logger.info(f"Command: {' '.join(cmd)}")
+    # Use execve to replace current process with celery worker
+    # This ensures PYTHONPATH is preserved
+    os.execve(
+        sys.executable,
+        cmd,
+        os.environ  # Pass environment with PYTHONPATH set
+    )

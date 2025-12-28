@@ -34,7 +34,8 @@ logger.info(f"Python path: {sys.path}")
 # Import FastAPI app AFTER path setup
 # ------------------------------------------------------------------
 try:
-    from app.main import app
+    from app.main import app as fastapi_app
+    logger.info("✓ Successfully imported FastAPI app")
 except Exception as e:
     logger.exception("Failed to import FastAPI app")
     raise e
@@ -48,8 +49,12 @@ if __name__ == "__main__":
 
     port = int(os.getenv("PORT", "8000"))
 
+    # CRITICAL: Pass the app object directly, not a string
+    # This ensures uvicorn uses the already-imported app with correct sys.path
+    # If we pass a string, uvicorn does its own import which may fail
+    logger.info(f"Starting uvicorn on port {port}...")
     uvicorn.run(
-        "app.main:app",
+        fastapi_app,  # Pass the object, not "app.main:app"
         host="0.0.0.0",
         port=port,
         log_level="info",
