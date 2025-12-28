@@ -1,9 +1,8 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Query
 
 from app.core.exceptions import NotFoundException
-from app.core.security import api_key_auth
 from app.models.profile import ProfileStatus
 from app.schemas.profile import (
     CreateProfileRequest,
@@ -22,7 +21,7 @@ from app.services.profiler_service import (
 from app.schemas.scraped_data import ScrapedDataItem
 from app.tasks.profiler_tasks import run_profile_pipeline
 
-router = APIRouter(dependencies=[Depends(api_key_auth)])
+router = APIRouter()
 
 
 @router.get("/profiles", response_model=APIResponse[list[ProfileListItem]])

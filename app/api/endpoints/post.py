@@ -1,9 +1,8 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Query
 
 from app.core.exceptions import NotFoundException
-from app.core.security import api_key_auth
 from app.models.post import PostStatus
 from app.schemas.post import (
     CreatePostAnalysisRequest,
@@ -18,7 +17,7 @@ from app.services.post_analysis_service import (
 )
 from app.tasks.post_tasks import run_post_analysis_pipeline
 
-router = APIRouter(dependencies=[Depends(api_key_auth)])
+router = APIRouter()
 
 
 @router.get("/posts", response_model=APIResponse[list[PostListItem]])

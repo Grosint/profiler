@@ -39,12 +39,30 @@ def create_app() -> FastAPI:
     logger.info(f"CORS Raw String: {settings.CORS_ALLOW_ORIGINS_STR}")
     logger.warning(f"CORS Environment Variable: {os.getenv('CORS_ALLOW_ORIGINS', 'NOT SET - using default *')}")
 
+    # CORS Configuration Fix:
+    # If allow_credentials=True, we CANNOT use ["*"] - must specify exact origins
+    # If origins is ["*"], we must disable credentials
+    cors_origins = settings.CORS_ALLOW_ORIGINS
+    cors_credentials = settings.CORS_ALLOW_CREDENTIALS
+
+    if "*" in cors_origins and cors_credentials:
+        logger.warning("CORS: allow_credentials=True with origins=['*'] is invalid. Disabling credentials.")
+        cors_credentials = False
+
+    # #region agent log
+    try:
+        with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+            f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-config", "hypothesisId": "C", "location": "main.py:create_app", "message": "CORS middleware configuration", "data": {"allow_origins": cors_origins, "allow_credentials": cors_credentials, "allow_methods": settings.CORS_ALLOW_METHODS}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+    except:
+        pass
+    # #endregion
+
     # CORS - Ensure middleware is added before other middleware
     # FastAPI CORSMiddleware must be added first to handle preflight OPTIONS requests
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.CORS_ALLOW_ORIGINS,
-        allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
+        allow_origins=cors_origins,
+        allow_credentials=cors_credentials,
         allow_methods=settings.CORS_ALLOW_METHODS,
         allow_headers=["*"],  # Explicitly allow all headers for CORS
         expose_headers=["*"],  # Expose all headers

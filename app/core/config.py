@@ -18,7 +18,9 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     # Security
-    API_KEY: str = Field(..., description="Primary API key for external callers")
+    API_KEY: Optional[str] = Field(
+        default=None, description="Primary API key for external callers (deprecated - no longer required)"
+    )
     INTERNAL_SERVICE_TOKEN: Optional[str] = Field(
         default=None, description="Token used for internal service-to-service calls"
     )
@@ -39,7 +41,7 @@ class Settings(BaseSettings):
 
     # CORS - Store as string to avoid JSON parsing issues
     CORS_ALLOW_ORIGINS_STR: str = Field(default="*", alias="CORS_ALLOW_ORIGINS", exclude=True)
-    CORS_ALLOW_CREDENTIALS: bool = True
+    CORS_ALLOW_CREDENTIALS: bool = False  # Must be False when using "*" origins
     CORS_ALLOW_METHODS: list[str] = ["*"]
     CORS_ALLOW_HEADERS: list[str] = ["*"]
 
@@ -53,7 +55,13 @@ class Settings(BaseSettings):
         value = self.CORS_ALLOW_ORIGINS_STR
         if value.strip() == "*":
             return ["*"]
-        return [origin.strip() for origin in value.split(",") if origin.strip()]
+        # Filter out placeholder values
+        origins = [origin.strip() for origin in value.split(",") if origin.strip()]
+        # If all origins are placeholders, default to "*"
+        placeholder_patterns = ["your-frontend-domain", "your-custom-domain", "your-actual-frontend-url"]
+        if all(any(pattern in origin.lower() for pattern in placeholder_patterns) for origin in origins):
+            return ["*"]
+        return origins
 
     # Logging
     LOG_LEVEL: str = "INFO"
