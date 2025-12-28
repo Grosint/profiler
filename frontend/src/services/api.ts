@@ -16,6 +16,14 @@ import type {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 const API_KEY = import.meta.env.VITE_API_KEY || 'dev-secret-key'; // Default for development
 
+// #region agent log
+// Always log API key status (first 8 chars only for security) - helps debug in production
+console.log('[API Config] Base URL:', API_BASE_URL);
+console.log('[API Config] API Key configured:', API_KEY ? `${API_KEY.substring(0, 8)}...` : 'NOT SET');
+console.log('[API Config] API Key length:', API_KEY ? API_KEY.length : 0);
+console.log('[API Config] VITE_API_KEY env var:', import.meta.env.VITE_API_KEY ? `${String(import.meta.env.VITE_API_KEY).substring(0, 8)}...` : 'NOT SET');
+// #endregion
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -23,12 +31,6 @@ const apiClient = axios.create({
     'x-api-key': API_KEY,
   },
 });
-
-// Log API key status in development (first 8 chars only for security)
-if (import.meta.env.DEV) {
-  console.log('API Base URL:', API_BASE_URL);
-  console.log('API Key configured:', API_KEY ? `${API_KEY.substring(0, 8)}...` : 'NOT SET');
-}
 
 export const api = {
   // List all profiles
