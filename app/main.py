@@ -99,6 +99,13 @@ def create_app() -> FastAPI:
         # Handle OPTIONS preflight requests explicitly
         if request.method == "OPTIONS":
             logger.info(f"Handling OPTIONS preflight for {request.url.path}")
+            # #region agent log
+            try:
+                with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                    f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-request", "hypothesisId": "B", "location": "main.py:add_request_id_and_cors", "message": "OPTIONS preflight intercepted in middleware", "data": {"path": str(request.url.path), "origin": origin}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+            except:
+                pass
+            # #endregion
             return Response(
                 status_code=200,
                 headers={
@@ -113,12 +120,28 @@ def create_app() -> FastAPI:
 
         response = await call_next(request)
 
+        # #region agent log
+        try:
+            with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-request", "hypothesisId": "B", "location": "main.py:add_request_id_and_cors", "message": "Response from call_next", "data": {"status_code": response.status_code, "method": request.method, "path": str(request.url.path), "cors_origin_before": response.headers.get("access-control-allow-origin", "NOT_SET"), "all_headers": dict(response.headers)}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+        except:
+            pass
+        # #endregion
+
         # ALWAYS add CORS headers to every response (override any existing ones)
         response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
         response.headers["Access-Control-Allow-Headers"] = "*"
         response.headers["Access-Control-Allow-Credentials"] = "false"
         logger.info(f"CORS headers FORCED on response for {request.method} {request.url.path}")
+
+        # #region agent log
+        try:
+            with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                f.write(json.dumps({"sessionId": "debug-session", "runId": "cors-request", "hypothesisId": "B", "location": "main.py:add_request_id_and_cors", "message": "CORS headers after forcing", "data": {"cors_origin_after": response.headers.get("access-control-allow-origin", "NOT_SET"), "cors_methods": response.headers.get("access-control-allow-methods", "NOT_SET")}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+        except:
+            pass
+        # #endregion
 
         # #region agent log
         try:
@@ -156,12 +179,26 @@ def create_app() -> FastAPI:
     async def options_handler(request: Request, full_path: str) -> Response:
         """Explicit OPTIONS handler for CORS preflight requests."""
         origin = request.headers.get("origin", "*")
+        # #region agent log
+        import json
+        try:
+            with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                f.write(json.dumps({"sessionId": "debug-session", "runId": "options-handler", "hypothesisId": "F", "location": "main.py:options_handler", "message": "Explicit OPTIONS handler called", "data": {"path": full_path, "origin": origin, "request_method": request.method}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+        except:
+            pass
+        # #endregion
         # Allow the frontend origin explicitly
         if origin == "https://frontend-production-0fff.up.railway.app":
             allow_origin = origin
         else:
             allow_origin = "*"
-
+        # #region agent log
+        try:
+            with open("/Users/navitas28/Work/grosint/profiler/.cursor/debug.log", "a") as f:
+                f.write(json.dumps({"sessionId": "debug-session", "runId": "options-handler", "hypothesisId": "F", "location": "main.py:options_handler", "message": "OPTIONS handler response", "data": {"allow_origin": allow_origin, "origin": origin}, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+        except:
+            pass
+        # #endregion
         return Response(
             status_code=200,
             headers={
