@@ -55,16 +55,21 @@ def create_app() -> FastAPI:
         request_logger = logging.getLogger("request")
         request_logger.info("Incoming request", extra={"request_id": request_id, "path": request.url.path, "method": request.method, "origin": request.headers.get("origin")})
 
+        # Get CORS settings fresh each time to avoid closure issues
+        current_settings = get_settings()
+        current_cors_origins = current_settings.CORS_ALLOW_ORIGINS
+        current_cors_credentials = current_settings.CORS_ALLOW_CREDENTIALS
+
         # Handle OPTIONS preflight explicitly as backup
         if request.method == "OPTIONS":
             origin = request.headers.get("origin")
             # Determine allowed origin based on settings
-            if "*" in cors_origins:
+            if "*" in current_cors_origins:
                 allow_origin = "*"
-            elif origin and origin in cors_origins:
+            elif origin and origin in current_cors_origins:
                 allow_origin = origin
             else:
-                allow_origin = cors_origins[0] if cors_origins else "*"
+                allow_origin = current_cors_origins[0] if current_cors_origins else "*"
 
             return Response(
                 status_code=200,
@@ -72,7 +77,7 @@ def create_app() -> FastAPI:
                     "Access-Control-Allow-Origin": allow_origin,
                     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD",
                     "Access-Control-Allow-Headers": "*",
-                    "Access-Control-Allow-Credentials": str(cors_credentials).lower(),
+                    "Access-Control-Allow-Credentials": str(current_cors_credentials).lower(),
                     "Access-Control-Max-Age": "3600",
                     "X-Request-ID": request_id,
                 },
@@ -84,17 +89,17 @@ def create_app() -> FastAPI:
         # This ensures CORS works even if CORSMiddleware fails or headers are stripped
         origin = request.headers.get("origin")
         # Determine allowed origin based on settings
-        if "*" in cors_origins:
+        if "*" in current_cors_origins:
             allow_origin = "*"
-        elif origin and origin in cors_origins:
+        elif origin and origin in current_cors_origins:
             allow_origin = origin
         else:
-            allow_origin = cors_origins[0] if cors_origins else "*"
+            allow_origin = current_cors_origins[0] if current_cors_origins else "*"
 
         response.headers["Access-Control-Allow-Origin"] = allow_origin
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
         response.headers["Access-Control-Allow-Headers"] = "*"
-        response.headers["Access-Control-Allow-Credentials"] = str(cors_credentials).lower()
+        response.headers["Access-Control-Allow-Credentials"] = str(current_cors_credentials).lower()
         response.headers["X-Request-ID"] = request_id
         return response
 
@@ -118,8 +123,10 @@ def create_app() -> FastAPI:
     # Error handlers
     init_error_handlers(app)
 
-    # NOTE: Removed explicit OPTIONS handler - CORSMiddleware handles OPTIONS requests properly
-    # Having both causes conflicts and prevents CORSMiddleware from working correctly
+    # Root health check for Railway (simple, no CORS needed)
+    @app.get("/")
+    async def root():
+        return {"status": "ok", "service": "GROSINT AI Profiler API"}
 
     @app.on_event("startup")
     async def on_startup() -> None:
