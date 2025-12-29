@@ -13,5 +13,8 @@ cmds = [
 [phases.build]
 cmds = []
 
-# Note: Start command is defined in Procfile, not here
-# Railway will automatically detect and use the Procfile
+# Note: Start command is defined in Procfile (web: python start.py)
+# Railway automatically sets the PORT environment variable
+# The start.py script reads PORT from environment: os.getenv("PORT", "8000")
+# Railway will route traffic to whatever port your service listens on
+# Verify the port in Railway logs: "Starting uvicorn on port {port}..."
