@@ -24,15 +24,24 @@ def create_app() -> FastAPI:
         debug=settings.DEBUG,
     )
 
-    # CORS - Simple: allow everything with "*"
-    logger.info("CORS Configuration: allow_origins=['*'] (allows all origins)")
+    # CORS - Read from environment variables
+    cors_origins = settings.CORS_ALLOW_ORIGINS
+    cors_credentials = settings.CORS_ALLOW_CREDENTIALS
 
-    # CORS - Simple: allow everything
+    # Browser security: Cannot use "*" with credentials=True
+    # If credentials is True, must use specific origins
+    if cors_credentials and "*" in cors_origins:
+        logger.warning("CORS_ALLOW_CREDENTIALS is True but origins includes '*'. Setting credentials to False.")
+        cors_credentials = False
+
+    logger.info(f"CORS Configuration: allow_origins={cors_origins}, allow_credentials={cors_credentials}")
+
+    # CORS Middleware
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Allow all origins
-        allow_credentials=False,  # Must be False when using "*"
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],  # All common methods
+        allow_origins=cors_origins,  # From environment variable
+        allow_credentials=cors_credentials,  # From environment variable
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
         allow_headers=["*"],  # Allow all headers
         expose_headers=["*"],  # Expose all headers
         max_age=3600,
@@ -48,13 +57,22 @@ def create_app() -> FastAPI:
 
         # Handle OPTIONS preflight explicitly as backup
         if request.method == "OPTIONS":
+            origin = request.headers.get("origin")
+            # Determine allowed origin based on settings
+            if "*" in cors_origins:
+                allow_origin = "*"
+            elif origin and origin in cors_origins:
+                allow_origin = origin
+            else:
+                allow_origin = cors_origins[0] if cors_origins else "*"
+
             return Response(
                 status_code=200,
                 headers={
-                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Origin": allow_origin,
                     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD",
                     "Access-Control-Allow-Headers": "*",
-                    "Access-Control-Allow-Credentials": "false",
+                    "Access-Control-Allow-Credentials": str(cors_credentials).lower(),
                     "Access-Control-Max-Age": "3600",
                     "X-Request-ID": request_id,
                 },
@@ -64,10 +82,19 @@ def create_app() -> FastAPI:
 
         # ALWAYS force CORS headers on every response (override any existing ones)
         # This ensures CORS works even if CORSMiddleware fails or headers are stripped
-        response.headers["Access-Control-Allow-Origin"] = "*"
+        origin = request.headers.get("origin")
+        # Determine allowed origin based on settings
+        if "*" in cors_origins:
+            allow_origin = "*"
+        elif origin and origin in cors_origins:
+            allow_origin = origin
+        else:
+            allow_origin = cors_origins[0] if cors_origins else "*"
+
+        response.headers["Access-Control-Allow-Origin"] = allow_origin
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
         response.headers["Access-Control-Allow-Headers"] = "*"
-        response.headers["Access-Control-Allow-Credentials"] = "false"
+        response.headers["Access-Control-Allow-Credentials"] = str(cors_credentials).lower()
         response.headers["X-Request-ID"] = request_id
         return response
 

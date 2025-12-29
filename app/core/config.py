@@ -41,7 +41,7 @@ class Settings(BaseSettings):
 
     # CORS - Store as string to avoid JSON parsing issues
     CORS_ALLOW_ORIGINS_STR: str = Field(default="*", alias="CORS_ALLOW_ORIGINS", exclude=True)
-    CORS_ALLOW_CREDENTIALS: bool = False  # Must be False when using "*" origins
+    CORS_ALLOW_CREDENTIALS: bool = Field(default=False, description="CORS allow credentials - must be False when using '*' origins")
     CORS_ALLOW_METHODS: list[str] = ["*"]
     CORS_ALLOW_HEADERS: list[str] = ["*"]
 
@@ -49,9 +49,19 @@ class Settings(BaseSettings):
     @property
     def CORS_ALLOW_ORIGINS(self) -> list[str]:
         """
-        Always return ["*"] to allow all origins - simple and works everywhere.
+        Parse CORS_ALLOW_ORIGINS from environment variable.
+        Supports "*" for all origins or comma-separated list of specific origins.
         """
-        return ["*"]
+        if not self.CORS_ALLOW_ORIGINS_STR or self.CORS_ALLOW_ORIGINS_STR.strip() == "":
+            return ["*"]
+
+        origins_str = self.CORS_ALLOW_ORIGINS_STR.strip()
+        if origins_str == "*":
+            return ["*"]
+
+        # Parse comma-separated origins
+        origins = [origin.strip() for origin in origins_str.split(",") if origin.strip()]
+        return origins if origins else ["*"]
 
     # Logging
     LOG_LEVEL: str = "INFO"

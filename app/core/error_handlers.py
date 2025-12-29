@@ -24,10 +24,19 @@ def _error_response(
         },
     )
     # Add CORS headers to error responses
-    response.headers["Access-Control-Allow-Origin"] = "*"
+    # Import here to avoid circular dependency
+    from app.core.config import get_settings
+    settings = get_settings()
+    cors_origins = settings.CORS_ALLOW_ORIGINS
+    cors_credentials = settings.CORS_ALLOW_CREDENTIALS
+
+    # Use "*" if configured, otherwise use first origin
+    allow_origin = "*" if "*" in cors_origins else (cors_origins[0] if cors_origins else "*")
+
+    response.headers["Access-Control-Allow-Origin"] = allow_origin
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
     response.headers["Access-Control-Allow-Headers"] = "*"
-    response.headers["Access-Control-Allow-Credentials"] = "false"
+    response.headers["Access-Control-Allow-Credentials"] = str(cors_credentials).lower()
     return response
 
 
