@@ -3,10 +3,10 @@ nixPkgs = ["python312"]
 
 [phases.install]
 cmds = [
-  "pip install --no-cache-dir --upgrade pip setuptools wheel",
-  "pip install --no-cache-dir cython numpy scipy",
-  "pip install --no-cache-dir -r requirements.txt",
-  "playwright install chromium"
+  "python -m pip install --no-cache-dir --upgrade pip setuptools wheel",
+  "python -m pip install --no-cache-dir cython numpy scipy",
+  "python -m pip install --no-cache-dir -r requirements.txt",
+  "python -m playwright install chromium"
 ]
 
 [phases.build]
