@@ -130,7 +130,14 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def on_startup() -> None:
-        await init_database()
+        try:
+            await init_database()
+            logger.info("Database initialization completed successfully")
+        except Exception as e:
+            logger.error(f"Database initialization failed: {e}", exc_info=True)
+            # Don't crash the server - allow it to start even if DB fails
+            # The app can still serve requests, but DB operations will fail
+            logger.warning("Server starting without database connection - some features may be unavailable")
 
     return app
 

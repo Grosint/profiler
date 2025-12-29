@@ -109,11 +109,19 @@ if __name__ == "__main__":
     # This ensures uvicorn uses the already-imported app with correct sys.path
     # If we pass a string, uvicorn does its own import which may fail
     logger.info(f"Starting uvicorn on port {port}...")
-    uvicorn.run(
-        fastapi_app,  # Pass the object, not "app.main:app"
-        host="0.0.0.0",
-        port=port,
-        log_level="info",
-        workers=1,        # Railway handles scaling
-        access_log=True,
-    )
+    logger.info(f"PORT environment variable: {os.getenv('PORT', 'NOT SET - using 8000')}")
+    logger.info(f"FastAPI app object: {fastapi_app}")
+    logger.info(f"FastAPI app title: {fastapi_app.title}")
+
+    try:
+        uvicorn.run(
+            fastapi_app,  # Pass the object, not "app.main:app"
+            host="0.0.0.0",
+            port=port,
+            log_level="info",
+            workers=1,        # Railway handles scaling
+            access_log=True,
+        )
+    except Exception as e:
+        logger.exception(f"Failed to start uvicorn: {e}")
+        raise
